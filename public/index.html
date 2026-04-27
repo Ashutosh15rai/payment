@@ -306,8 +306,7 @@
 
 <script>
   // ── CONFIG ──────────────────────────────────────────────
-  // ⚠️ Replace with your NEW Razorpay Key ID after regenerating
-  const RAZORPAY_KEY_ID = 'rzp_test_REPLACE_WITH_NEW_KEY';
+  const RAZORPAY_KEY_ID = 'rzp_test_SiSlHqF1qb1aWl';
   const BOT_TOKEN       = '8187762497:AAFd3E2TkuURYHINjQXmqieX1SI-NvuKdh8';
 
   // ── STATE ───────────────────────────────────────────────
@@ -331,44 +330,19 @@
   }
 
   // ── START PAYMENT ───────────────────────────────────────
-  async function startPayment(planName, amount) {
-    showLoading('Creating order...');
-
-    let order;
-    try {
-      // Call our Vercel serverless function to create a Razorpay order
-      const res = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, plan: planName })
-      });
-
-      if (!res.ok) throw new Error('Failed to create order');
-      order = await res.json();
-    } catch (err) {
-      hideLoading();
-      toast('⚠️ Could not connect to payment server. Try again.');
-      return;
-    }
-
-    hideLoading();
-
-    // ── OPEN RAZORPAY CHECKOUT ──────────────────────────
-    // This opens Razorpay's hosted page — no phone registration required.
-    // Users can pay via UPI, card, netbanking — all in one screen.
+  function startPayment(planName, amount) {
+    // Opens Razorpay checkout directly — no backend needed for testing
     const options = {
       key: RAZORPAY_KEY_ID,
-      amount: order.amount,           // already in paise from backend
+      amount: amount * 100,           // ₹ to paise (₹10 → 1000)
       currency: 'INR',
-      name: 'Your App Name',          // ← change this to your app/brand name
+      name: 'Your App Name',          // ← change to your brand name
       description: planName + ' Plan - Monthly',
-      order_id: order.id,
 
-      // Pre-fill with Telegram user info so Razorpay doesn't ask again
       prefill: {
         name:    fullName,
-        email:   '',                  // optional: add if you collect email
-        contact: ''                   // leave blank — won't force registration
+        email:   '',
+        contact: ''                   // blank = no forced phone registration
       },
 
       theme: { color: '#00d46a' },
@@ -380,7 +354,6 @@
       },
 
       handler: async function(response) {
-        // Payment succeeded — Razorpay returns payment_id, order_id, signature
         showLoading('Sending receipt to Telegram...');
         await handleSuccess(planName, amount, response);
         hideLoading();
