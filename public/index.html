@@ -5,729 +5,602 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Payment</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0a0a0f;
-      --surface: #13131a;
-      --surface2: #1c1c27;
-      --border: rgba(255,255,255,0.07);
+      --bg: #0d0d14;
+      --surface: #16161f;
+      --surface2: #1e1e2a;
+      --border: rgba(255,255,255,0.08);
       --accent: #00d46a;
-      --accent2: #00b5ff;
-      --gpay: #1a73e8;
-      --text: #f0f0f8;
-      --muted: #7a7a9a;
-      --danger: #ff4f6d;
-      --gold: #ffd166;
-      --radius: 18px;
+      --accent2: #4facfe;
+      --text: #eeeef5;
+      --muted: #6b6b8a;
+      --gpay-blue: #1a73e8;
+      --radius: 16px;
       --radius-sm: 10px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
-      overflow-x: hidden;
     }
 
-    /* ── GLOW BG ── */
+    /* glow */
     body::before {
       content: '';
-      position: fixed;
-      top: -200px; left: 50%;
-      transform: translateX(-50%);
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(0,212,106,0.08) 0%, transparent 70%);
+      position: fixed; top: -150px; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(0,212,106,0.07) 0%, transparent 70%);
       pointer-events: none;
-      z-index: 0;
     }
 
-    .app { position: relative; z-index: 1; max-width: 420px; margin: 0 auto; padding: 0 0 40px; }
+    .app { max-width: 430px; margin: 0 auto; padding-bottom: 48px; position: relative; }
 
-    /* ── SCREEN SYSTEM ── */
-    .screen { display: none; animation: fadeUp 0.4s ease; }
-    .screen.active { display: block; }
+    /* screens */
+    .screen { display: none; }
+    .screen.active { display: block; animation: fadeUp 0.35s ease; }
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
+      from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── HEADER ── */
+    /* header */
     .header {
-      padding: 28px 24px 0;
-      display: flex; align-items: center; gap: 14px;
+      padding: 26px 20px 0;
+      display: flex; align-items: center; gap: 12px;
     }
     .avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, #00d46a, #4facfe);
       display: flex; align-items: center; justify-content: center;
-      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;
-      flex-shrink: 0;
+      font-size: 19px; font-weight: 700; flex-shrink: 0; color: #000;
     }
-    .header-text h2 {
-      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
-    }
-    .header-text p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .hinfo h2 { font-size: 16px; font-weight: 700; }
+    .hinfo p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    /* ── SECTION TITLE ── */
-    .section-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px; font-weight: 800;
-      padding: 28px 24px 4px;
-      letter-spacing: -0.5px;
-    }
-    .section-sub { font-size: 13px; color: var(--muted); padding: 0 24px 20px; }
+    /* titles */
+    .stitle { font-size: 22px; font-weight: 800; padding: 24px 20px 4px; letter-spacing: -0.3px; }
+    .ssub   { font-size: 13px; color: var(--muted); padding: 0 20px 18px; }
 
-    /* ── PLAN CARD ── */
-    .plans { padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+    /* plan card */
+    .plans { padding: 0 14px; display: flex; flex-direction: column; gap: 12px; }
 
     .plan-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      position: relative;
-      overflow: hidden;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 20px; cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+      position: relative; overflow: hidden;
     }
-    .plan-card::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(0,212,106,0.05), transparent);
-      opacity: 0; transition: opacity 0.25s;
-    }
-    .plan-card:hover::before, .plan-card:active::before { opacity: 1; }
-    .plan-card:hover { border-color: rgba(0,212,106,0.3); transform: translateY(-1px); }
     .plan-card:active { transform: scale(0.98); }
+    .plan-card:hover  { border-color: rgba(0,212,106,0.35); }
+    .plan-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,106,0.05), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .plan-card:hover::after { opacity: 1; }
 
-    .plan-badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 600; letter-spacing: 1px;
-      text-transform: uppercase;
-      padding: 3px 8px; border-radius: 20px;
-      background: rgba(0,212,106,0.15); color: var(--accent);
-      margin-bottom: 10px;
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 20px;
+      background: rgba(0,212,106,0.12); color: var(--accent);
+      margin-bottom: 12px;
     }
-    .plan-badge.popular {
-      background: rgba(255,209,102,0.15); color: var(--gold);
-    }
+    .plan-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .plan-name { font-size: 18px; font-weight: 700; }
+    .price { text-align: right; }
+    .price .amt { font-size: 28px; font-weight: 800; color: var(--accent); }
+    .price .per { font-size: 12px; color: var(--muted); display: block; }
 
-    .plan-top { display: flex; justify-content: space-between; align-items: flex-start; }
-    .plan-name {
-      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
-    }
-    .plan-price {
-      text-align: right;
-    }
-    .plan-price .amount {
-      font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
-      color: var(--accent);
-    }
-    .plan-price .period { font-size: 12px; color: var(--muted); display: block; }
-
-    .plan-features { margin-top: 14px; display: flex; flex-direction: column; gap: 7px; }
-    .plan-feature {
-      display: flex; align-items: center; gap: 8px;
+    .features { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .feat {
+      display: flex; align-items: center; gap: 9px;
       font-size: 13px; color: var(--muted);
     }
-    .plan-feature .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--accent); flex-shrink: 0;
-    }
+    .feat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
-    .pay-btn-row { padding: 20px 16px 0; }
-    .pay-btn {
-      width: 100%;
-      background: var(--gpay);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      padding: 16px;
-      font-family: 'Syne', sans-serif;
-      font-size: 16px; font-weight: 700;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: all 0.2s;
-      letter-spacing: 0.3px;
-    }
-    .pay-btn:hover { filter: brightness(1.1); }
-    .pay-btn:active { transform: scale(0.98); }
-    .pay-btn svg { flex-shrink: 0; }
-
-    /* ── PAYMENT SCREEN ── */
+    /* back */
     .back-btn {
       display: flex; align-items: center; gap: 6px;
       background: none; border: none; color: var(--muted);
-      font-family: 'DM Sans', sans-serif; font-size: 14px;
-      cursor: pointer; padding: 24px 24px 0;
-      transition: color 0.2s;
+      font-size: 14px; cursor: pointer; padding: 22px 20px 0;
+      transition: color 0.2s; font-family: inherit;
     }
     .back-btn:hover { color: var(--text); }
 
-    .payment-card {
-      margin: 20px 16px 0;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
+    /* payment card */
+    .pcard {
+      margin: 18px 14px 0;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
     }
 
-    .payment-plan-info {
+    .pinfo {
       display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
+      padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 20px;
     }
-    .payment-plan-info .label { font-size: 13px; color: var(--muted); }
-    .payment-plan-info .pname {
-      font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700;
-      margin-top: 3px;
-    }
-    .payment-plan-info .pamount {
-      font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
-      color: var(--accent); text-align: right;
-    }
-    .payment-plan-info .pamount span { font-size: 14px; color: var(--muted); }
+    .pinfo .plabel { font-size: 12px; color: var(--muted); }
+    .pinfo .pname  { font-size: 17px; font-weight: 700; margin-top: 3px; }
+    .pinfo .pamount{ font-size: 28px; font-weight: 800; color: var(--accent); text-align: right; }
+    .pinfo .pamount span { font-size: 13px; color: var(--muted); }
 
     .qr-section { text-align: center; }
-    .qr-label { font-size: 12px; color: var(--muted); margin-bottom: 14px; letter-spacing: 0.5px; }
-    .qr-wrapper {
-      display: inline-flex;
-      background: #fff;
-      padding: 14px;
-      border-radius: 14px;
-      margin-bottom: 14px;
+    .qr-label { font-size: 11px; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px; }
+    .qr-img-wrap {
+      display: inline-flex; background: #fff;
+      padding: 12px; border-radius: 12px; margin-bottom: 10px;
     }
-    #qr-canvas { display: block; }
+    .qr-img-wrap img { width: 172px; height: 172px; display: block; }
+    .qr-hint { font-size: 12px; color: var(--muted); }
 
     .divider {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 10px;
       margin: 18px 0; color: var(--muted); font-size: 12px;
     }
     .divider::before, .divider::after {
       content: ''; flex: 1; height: 1px; background: var(--border);
     }
 
-    .gpay-link-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #1a73e8, #0057c9);
+    .btn-gpay {
+      width: 100%; background: var(--gpay-blue);
       color: #fff; border: none; border-radius: var(--radius-sm);
-      padding: 14px; font-family: 'Syne', sans-serif;
-      font-size: 15px; font-weight: 700;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: all 0.2s;
+      padding: 15px; font-size: 15px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+      transition: filter 0.2s, transform 0.15s; font-family: inherit;
     }
-    .gpay-link-btn:hover { filter: brightness(1.1); }
-    .gpay-link-btn:active { transform: scale(0.98); }
+    .btn-gpay:hover { filter: brightness(1.1); }
+    .btn-gpay:active { transform: scale(0.97); }
 
-    .paid-confirm-btn {
-      width: 100%;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      color: var(--text); border-radius: var(--radius-sm);
-      padding: 14px; font-family: 'DM Sans', sans-serif;
-      font-size: 14px; font-weight: 500;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin-top: 10px; transition: all 0.2s;
+    .btn-paid {
+      width: 100%; background: var(--surface2);
+      border: 1.5px solid var(--border); color: var(--text);
+      border-radius: var(--radius-sm); padding: 14px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      margin-top: 10px; transition: border-color 0.2s, color 0.2s; font-family: inherit;
     }
-    .paid-confirm-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-paid:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── UTR SCREEN ── */
+    /* UTR screen */
     .utr-card {
-      margin: 20px 16px 0;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 24px;
+      margin: 18px 14px 0;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 28px 22px;
     }
     .utr-icon {
-      width: 56px; height: 56px; border-radius: 50%;
-      background: rgba(0,212,106,0.1);
+      width: 58px; height: 58px; border-radius: 50%;
+      background: rgba(0,212,106,0.1); font-size: 26px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 26px; margin: 0 auto 16px;
+      margin: 0 auto 14px;
     }
-    .utr-card h3 {
-      font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 700;
-      text-align: center; margin-bottom: 6px;
-    }
-    .utr-card p { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 24px; }
+    .utr-card h3 { font-size: 19px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .utr-card > p { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 22px; line-height: 1.6; }
 
-    .input-group { margin-bottom: 14px; }
-    .input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 7px; letter-spacing: 0.5px; }
-    .input-group input {
-      width: 100%;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 13px 15px;
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif; font-size: 15px;
-      outline: none; transition: border-color 0.2s;
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 7px; }
+    .field input {
+      width: 100%; background: var(--surface2);
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      padding: 13px 14px; color: var(--text); font-size: 15px;
+      outline: none; transition: border-color 0.2s; font-family: inherit;
     }
-    .input-group input:focus { border-color: var(--accent); }
-    .input-group input::placeholder { color: var(--muted); }
+    .field input:focus  { border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); }
 
-    .submit-btn {
-      width: 100%;
-      background: var(--accent);
-      color: #000; border: none;
-      border-radius: var(--radius-sm);
-      padding: 15px; font-family: 'Syne', sans-serif;
-      font-size: 15px; font-weight: 700;
-      cursor: pointer; margin-top: 6px;
-      transition: all 0.2s;
+    .btn-submit {
+      width: 100%; background: var(--accent); color: #000;
+      border: none; border-radius: var(--radius-sm);
+      padding: 15px; font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-top: 6px; transition: filter 0.2s, transform 0.15s;
+      font-family: inherit;
     }
-    .submit-btn:hover { filter: brightness(1.1); }
-    .submit-btn:active { transform: scale(0.98); }
+    .btn-submit:hover  { filter: brightness(1.08); }
+    .btn-submit:active { transform: scale(0.98); }
 
-    /* ── SUCCESS SCREEN ── */
-    .success-top {
-      text-align: center;
-      padding: 36px 24px 0;
-    }
-    .success-anim {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #00a854);
+    /* success */
+    .success-top { text-align: center; padding: 32px 20px 0; }
+    .check-circle {
+      width: 78px; height: 78px; border-radius: 50%;
+      background: linear-gradient(135deg, #00d46a, #00a854);
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px;
-      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      margin: 0 auto 18px;
+      animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    @keyframes popIn {
+    @keyframes pop {
       from { transform: scale(0); opacity: 0; }
       to   { transform: scale(1); opacity: 1; }
     }
-    .success-anim svg { animation: checkDraw 0.4s 0.3s ease both; }
-    @keyframes checkDraw {
-      from { opacity: 0; transform: scale(0.5); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    .success-top h2 {
-      font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800;
-      margin-bottom: 6px;
-    }
-    .success-top p { font-size: 14px; color: var(--muted); }
+    .success-top h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .success-top p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
-    .receipt-card {
-      margin: 24px 16px 0;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+    .receipt {
+      margin: 22px 14px 0;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
     }
-    .receipt-header {
-      background: linear-gradient(135deg, rgba(0,212,106,0.15), rgba(0,181,255,0.08));
-      padding: 16px 20px;
-      display: flex; align-items: center; gap: 10px;
+    .receipt-hdr {
+      background: linear-gradient(135deg, rgba(0,212,106,0.12), rgba(79,172,254,0.07));
+      padding: 14px 18px; display: flex; align-items: center; gap: 10px;
       border-bottom: 1px solid var(--border);
     }
-    .receipt-header .r-icon { font-size: 20px; }
-    .receipt-header .r-title {
-      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
-    }
-    .receipt-header .r-date { font-size: 11px; color: var(--muted); }
+    .receipt-hdr .rh-icon { font-size: 20px; }
+    .receipt-hdr .rh-title { font-size: 14px; font-weight: 700; }
+    .receipt-hdr .rh-date  { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-    .receipt-rows { padding: 6px 0; }
-    .receipt-row {
+    .rrows { padding: 4px 0; }
+    .rrow {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      padding: 11px 18px; border-bottom: 1px solid rgba(255,255,255,0.04);
     }
-    .receipt-row:last-child { border-bottom: none; }
-    .receipt-row .rkey { font-size: 12px; color: var(--muted); }
-    .receipt-row .rval { font-size: 13px; font-weight: 500; text-align: right; max-width: 55%; word-break: break-all; }
-    .receipt-row .rval.green { color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; }
-    .receipt-row .rval.blue { color: var(--accent2); }
+    .rrow:last-child { border-bottom: none; }
+    .rk { font-size: 12px; color: var(--muted); }
+    .rv { font-size: 13px; font-weight: 500; text-align: right; max-width: 58%; word-break: break-all; }
+    .rv.g { color: var(--accent); font-weight: 700; font-size: 15px; }
+    .rv.b { color: var(--accent2); }
 
-    .status-pill {
+    .pill {
       display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(0,212,106,0.12); color: var(--accent);
+      background: rgba(0,212,106,0.1); color: var(--accent);
       padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
     }
-    .status-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .pill-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-    .done-btn {
-      margin: 16px 16px 0;
-      width: calc(100% - 32px);
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
+    .btn-close {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      margin: 14px 14px 0; width: calc(100% - 28px);
+      background: var(--surface2); border: 1.5px solid var(--border);
       color: var(--text); border-radius: var(--radius-sm);
-      padding: 15px; font-family: 'Syne', sans-serif;
-      font-size: 15px; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: all 0.2s;
+      padding: 15px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: border-color 0.2s, color 0.2s; font-family: inherit;
     }
-    .done-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-close:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── LOADING ── */
-    .loading-overlay {
+    /* loading overlay */
+    .overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(10,10,15,0.85); z-index: 999;
-      align-items: center; justify-content: center;
-      flex-direction: column; gap: 14px;
+      background: rgba(10,10,20,0.82); z-index: 999;
+      align-items: center; justify-content: center; flex-direction: column; gap: 14px;
     }
-    .loading-overlay.show { display: flex; }
+    .overlay.show { display: flex; }
     .spinner {
       width: 40px; height: 40px; border-radius: 50%;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      animation: spin 0.8s linear infinite;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-overlay p { font-size: 14px; color: var(--muted); }
+    .overlay p { font-size: 13px; color: var(--muted); }
 
-    /* ── TOAST ── */
+    /* toast */
     .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      position: fixed; bottom: 22px; left: 50%;
+      transform: translateX(-50%) translateY(70px);
       background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text); padding: 12px 20px; border-radius: 30px;
-      font-size: 13px; white-space: nowrap;
-      transition: transform 0.3s ease; z-index: 9999;
+      color: var(--text); padding: 11px 20px; border-radius: 30px;
+      font-size: 13px; white-space: nowrap; transition: transform 0.3s; z-index: 9999;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
-
 <div class="app">
 
-  <!-- ═══════════ SCREEN 1: PLAN SELECTION ═══════════ -->
-  <div class="screen active" id="screen-plans">
+  <!-- SCREEN 1: PLANS -->
+  <div class="screen active" id="s-plans">
     <div class="header">
-      <div class="avatar" id="user-avatar">?</div>
-      <div class="header-text">
-        <h2 id="user-name">Loading...</h2>
-        <p id="user-id">Telegram ID: —</p>
+      <div class="avatar" id="av">?</div>
+      <div class="hinfo">
+        <h2 id="uname">Loading...</h2>
+        <p id="uid">Telegram ID: —</p>
       </div>
     </div>
 
-    <div class="section-title">Choose a Plan</div>
-    <div class="section-sub">Select the plan that works best for you</div>
+    <div class="stitle">Choose a Plan</div>
+    <div class="ssub">Select the plan that works best for you</div>
 
     <div class="plans">
-      <!-- Basic Plan -->
+      <!-- BASIC -->
       <div class="plan-card" onclick="selectPlan('Basic', 10)">
-        <div class="plan-badge">Starter</div>
-        <div class="plan-top">
+        <div class="badge">Starter</div>
+        <div class="plan-row">
           <div class="plan-name">Basic</div>
-          <div class="plan-price">
-            <div class="amount">₹10</div>
-            <span class="period">/ month</span>
+          <div class="price">
+            <span class="amt">₹10</span>
+            <span class="per">/ month</span>
           </div>
         </div>
-        <div class="plan-features">
-          <div class="plan-feature"><span class="dot"></span>Access to basic features</div>
-          <div class="plan-feature"><span class="dot"></span>Telegram bot support</div>
-          <div class="plan-feature"><span class="dot"></span>Up to 100 requests/day</div>
+        <div class="features">
+          <div class="feat"><span class="feat-dot"></span>Access to basic features</div>
+          <div class="feat"><span class="feat-dot"></span>Telegram bot support</div>
+          <div class="feat"><span class="feat-dot"></span>Up to 100 requests/day</div>
         </div>
       </div>
-
-      <!-- You can add more plans here later -->
+      <!-- Add more plans here -->
     </div>
   </div>
 
-  <!-- ═══════════ SCREEN 2: PAYMENT ═══════════ -->
-  <div class="screen" id="screen-payment">
-    <button class="back-btn" onclick="goBack('screen-plans')">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-      Back
+  <!-- SCREEN 2: PAYMENT -->
+  <div class="screen" id="s-payment">
+    <button class="back-btn" onclick="show('s-plans')">
+      ← Back
     </button>
 
-    <div class="section-title">Complete Payment</div>
-    <div class="section-sub">Scan the QR or tap the button to pay via Google Pay</div>
+    <div class="stitle">Pay with Google Pay</div>
+    <div class="ssub">Scan QR or tap the button to open Google Pay</div>
 
-    <div class="payment-card">
-      <div class="payment-plan-info">
+    <div class="pcard">
+      <div class="pinfo">
         <div>
-          <div class="label">Selected Plan</div>
-          <div class="pname" id="pay-plan-name">—</div>
+          <div class="plabel">Selected Plan</div>
+          <div class="pname" id="pay-pname">—</div>
         </div>
-        <div class="pamount" id="pay-amount">₹0<span>/mo</span></div>
+        <div class="pamount" id="pay-amt">₹0<span>/mo</span></div>
       </div>
 
       <div class="qr-section">
-        <div class="qr-label">SCAN TO PAY</div>
-        <div class="qr-wrapper">
-          <div id="qr-canvas"></div>
+        <div class="qr-label">Scan to Pay · Any UPI App</div>
+        <div class="qr-img-wrap">
+          <img id="qr-img" src="" alt="QR Code" />
         </div>
-        <div style="font-size:12px;color:var(--muted);">Works with Google Pay, PhonePe, Paytm & all UPI apps</div>
+        <div class="qr-hint">Google Pay · PhonePe · Paytm · Any UPI app</div>
       </div>
 
       <div class="divider">or</div>
 
-      <button class="gpay-link-btn" onclick="openGpay()">
-        <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
-          <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z" fill="#4285F4"/>
-          <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z" fill="url(#gpay_grad)"/>
-          <defs><linearGradient id="gpay_grad" x1="4" y1="4" x2="44" y2="44"><stop stop-color="#4285F4"/><stop offset="1" stop-color="#1565C0"/></linearGradient></defs>
-          <text x="24" y="29" font-size="14" font-family="Arial" font-weight="bold" fill="white" text-anchor="middle">G</text>
+      <button class="btn-gpay" onclick="openGpay()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+          <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0 0 12.545 3C7.021 3 2.543 7.477 2.543 13s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z"/>
         </svg>
         Open Google Pay
       </button>
 
-      <button class="paid-confirm-btn" onclick="showUTRScreen()">
+      <button class="btn-paid" onclick="show('s-utr')">
         ✅ I've completed the payment
       </button>
     </div>
   </div>
 
-  <!-- ═══════════ SCREEN 3: UTR ENTRY ═══════════ -->
-  <div class="screen" id="screen-utr">
-    <button class="back-btn" onclick="goBack('screen-payment')">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-      Back
+  <!-- SCREEN 3: UTR -->
+  <div class="screen" id="s-utr">
+    <button class="back-btn" onclick="show('s-payment')">
+      ← Back
     </button>
 
     <div class="utr-card">
       <div class="utr-icon">🧾</div>
-      <h3>Confirm Your Payment</h3>
-      <p>Enter your UTR / Transaction ID from Google Pay to confirm. This helps us verify your payment.</p>
+      <h3>Confirm Payment</h3>
+      <p>Enter the UTR / Transaction ID shown in your Google Pay receipt to verify your payment.</p>
 
-      <div class="input-group">
-        <label>UTR / TRANSACTION ID</label>
-        <input type="text" id="utr-input" placeholder="e.g. 412312345678" maxlength="30" />
+      <div class="field">
+        <label>UTR / Transaction ID</label>
+        <input type="text" id="utr" placeholder="e.g. 412312345678" maxlength="30" />
+      </div>
+      <div class="field">
+        <label>App Used</label>
+        <input type="text" id="appused" placeholder="e.g. Google Pay, PhonePe, Paytm" />
       </div>
 
-      <div class="input-group">
-        <label>PAYMENT APP USED</label>
-        <input type="text" id="app-input" placeholder="e.g. Google Pay, PhonePe, Paytm" />
-      </div>
-
-      <button class="submit-btn" onclick="confirmPayment()">Confirm & Get Receipt</button>
+      <button class="btn-submit" onclick="confirmPayment()">✓ Confirm & Get Receipt</button>
     </div>
   </div>
 
-  <!-- ═══════════ SCREEN 4: SUCCESS ═══════════ -->
-  <div class="screen" id="screen-success">
+  <!-- SCREEN 4: SUCCESS -->
+  <div class="screen" id="s-success">
     <div class="success-top">
-      <div class="success-anim">
+      <div class="check-circle">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       </div>
-      <h2>Payment Successful!</h2>
-      <p>Your plan has been activated. Receipt sent to your Telegram.</p>
+      <h2>Payment Successful! 🎉</h2>
+      <p>Your plan is now active.<br/>A receipt has been sent to your Telegram.</p>
     </div>
 
-    <div class="receipt-card">
-      <div class="receipt-header">
-        <div class="r-icon">📋</div>
+    <div class="receipt">
+      <div class="receipt-hdr">
+        <div class="rh-icon">📋</div>
         <div>
-          <div class="r-title">Payment Receipt</div>
-          <div class="r-date" id="receipt-date">—</div>
+          <div class="rh-title">Payment Receipt</div>
+          <div class="rh-date" id="r-date">—</div>
         </div>
       </div>
-      <div class="receipt-rows">
-        <div class="receipt-row">
-          <div class="rkey">Status</div>
-          <div class="rval">
-            <span class="status-pill"><span class="status-dot"></span>Paid</span>
-          </div>
+      <div class="rrows">
+        <div class="rrow">
+          <div class="rk">Status</div>
+          <div class="rv"><span class="pill"><span class="pill-dot"></span>Paid</span></div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">Name</div>
-          <div class="rval" id="r-name">—</div>
+        <div class="rrow">
+          <div class="rk">Name</div>
+          <div class="rv" id="r-name">—</div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">Telegram ID</div>
-          <div class="rval blue" id="r-tid">—</div>
+        <div class="rrow">
+          <div class="rk">Telegram ID</div>
+          <div class="rv b" id="r-tid">—</div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">Plan</div>
-          <div class="rval" id="r-plan">—</div>
+        <div class="rrow">
+          <div class="rk">Plan</div>
+          <div class="rv" id="r-plan">—</div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">Amount Paid</div>
-          <div class="rval green" id="r-amount">—</div>
+        <div class="rrow">
+          <div class="rk">Amount</div>
+          <div class="rv g" id="r-amount">—</div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">UTR / Txn ID</div>
-          <div class="rval blue" id="r-utr">—</div>
+        <div class="rrow">
+          <div class="rk">UTR / Txn ID</div>
+          <div class="rv b" id="r-utr">—</div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">Payment App</div>
-          <div class="rval" id="r-app">—</div>
+        <div class="rrow">
+          <div class="rk">App Used</div>
+          <div class="rv" id="r-app">—</div>
         </div>
-        <div class="receipt-row">
-          <div class="rkey">Receipt ID</div>
-          <div class="rval" id="r-receipt-id">—</div>
+        <div class="rrow">
+          <div class="rk">Receipt ID</div>
+          <div class="rv" id="r-rcpt">—</div>
         </div>
       </div>
     </div>
 
-    <button class="done-btn" onclick="window.Telegram.WebApp.close()">
-      ✓ Close & Return to Bot
-    </button>
+    <button class="btn-close" onclick="closeTwa()">✓ Close & Return to Bot</button>
   </div>
 
 </div>
 
-<!-- Loading -->
-<div class="loading-overlay" id="loading">
+<!-- Loading overlay -->
+<div class="overlay" id="loading">
   <div class="spinner"></div>
-  <p>Sending receipt...</p>
+  <p>Sending receipt to Telegram...</p>
 </div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── CONFIG ──────────────────────────────────────────────
+  // ── CONFIG ─────────────────────────────────────────────
   const BOT_TOKEN = '8187762497:AAFd3E2TkuURYHINjQXmqieX1SI-NvuKdh8';
-  const UPI_BASE  = 'upi://pay?pa=neelamrai8012@okicici&pn=test&cu=INR';
+  const UPI_ID    = 'neelamrai8012@okicici';
+  const UPI_NAME  = 'test';
 
-  // ── STATE ───────────────────────────────────────────────
-  let currentPlan   = null;
-  let currentAmount = 0;
-  let tgUser        = { id: 'Unknown', first_name: 'User', last_name: '', username: '' };
+  // ── STATE ──────────────────────────────────────────────
+  let plan = '', amount = 0;
+  let tgUser = { id: '', first_name: 'User', last_name: '', username: '' };
 
-  // ── INIT TELEGRAM ────────────────────────────────────────
+  // ── TELEGRAM INIT ──────────────────────────────────────
   const twa = window.Telegram?.WebApp;
-  if (twa) {
-    twa.ready();
-    twa.expand();
-    if (twa.initDataUnsafe?.user) {
-      tgUser = twa.initDataUnsafe.user;
-    }
-  }
+  if (twa) { twa.ready(); twa.expand(); }
+  if (twa?.initDataUnsafe?.user) tgUser = twa.initDataUnsafe.user;
 
-  // Display user info
   const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || 'User';
-  document.getElementById('user-avatar').textContent = fullName.charAt(0).toUpperCase();
-  document.getElementById('user-name').textContent   = fullName;
-  document.getElementById('user-id').textContent     = 'ID: ' + (tgUser.id || 'Unknown');
+  document.getElementById('av').textContent    = fullName[0].toUpperCase();
+  document.getElementById('uname').textContent = fullName;
+  document.getElementById('uid').textContent   = 'ID: ' + (tgUser.id || 'Unknown');
 
-  // ── SCREEN NAVIGATION ────────────────────────────────────
-  function showScreen(id) {
+  // ── NAVIGATION ─────────────────────────────────────────
+  function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0, 0);
   }
 
-  function goBack(screen) {
-    showScreen(screen);
+  // ── SELECT PLAN ────────────────────────────────────────
+  function selectPlan(name, amt) {
+    plan = name; amount = amt;
+    document.getElementById('pay-pname').textContent = name;
+    document.getElementById('pay-amt').innerHTML = '₹' + amt + '<span>/mo</span>';
+
+    // Generate QR via free API — works without any JS library
+    const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amt}&cu=INR&tn=${encodeURIComponent('Payment for ' + name + ' Plan')}`;
+    const qrUrl   = 'https://api.qrserver.com/v1/create-qr-code/?size=172x172&data=' + encodeURIComponent(upiLink);
+    document.getElementById('qr-img').src = qrUrl;
+
+    show('s-payment');
   }
 
-  // ── SELECT PLAN ──────────────────────────────────────────
-  function selectPlan(name, amount) {
-    currentPlan   = name;
-    currentAmount = amount;
-
-    document.getElementById('pay-plan-name').textContent = name;
-    document.getElementById('pay-amount').innerHTML      = '₹' + amount + '<span>/mo</span>';
-
-    // Generate QR
-    const upiLink = UPI_BASE + '&am=' + amount + '&tn=Payment+for+' + encodeURIComponent(name) + '+Plan';
-    document.getElementById('qr-canvas').innerHTML = '';
-    new QRCode(document.getElementById('qr-canvas'), {
-      text:         upiLink,
-      width:        180,
-      height:       180,
-      colorDark:    '#000000',
-      colorLight:   '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-
-    showScreen('screen-payment');
-  }
-
-  // ── OPEN GPAY ────────────────────────────────────────────
+  // ── OPEN GOOGLE PAY ────────────────────────────────────
   function openGpay() {
-    const upiLink = UPI_BASE + '&am=' + currentAmount + '&tn=Payment+for+' + encodeURIComponent(currentPlan) + '+Plan';
-    window.location.href = upiLink;
-    // After a delay, show the UTR screen
-    setTimeout(() => showUTRScreen(), 2000);
-  }
+    const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Payment for ' + plan + ' Plan')}`;
 
-  // ── SHOW UTR SCREEN ──────────────────────────────────────
-  function showUTRScreen() {
-    document.getElementById('utr-input').value = '';
-    document.getElementById('app-input').value = '';
-    showScreen('screen-utr');
-  }
-
-  // ── CONFIRM PAYMENT ──────────────────────────────────────
-  async function confirmPayment() {
-    const utr    = document.getElementById('utr-input').value.trim();
-    const appUsed = document.getElementById('app-input').value.trim() || 'Google Pay';
-
-    if (!utr) {
-      showToast('⚠️ Please enter your UTR / Transaction ID');
-      return;
+    // Method 1: Telegram's own openLink — opens in external browser
+    // which CAN handle upi:// deep links on Android
+    if (window.Telegram?.WebApp?.openLink) {
+      try {
+        window.Telegram.WebApp.openLink(upiLink);
+      } catch(e) {
+        // Method 2: try intent URL (Android only)
+        const intentUrl = `intent://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+        const a = document.createElement('a');
+        a.href = intentUrl; a.target = '_blank';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+      }
+    } else {
+      // Method 3: fallback for non-Telegram browsers
+      const a = document.createElement('a');
+      a.href = upiLink; a.target = '_blank';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
     }
+
+    // After 2.5s, take user to UTR confirmation
+    setTimeout(() => show('s-utr'), 2500);
+  }
+
+  // ── CONFIRM PAYMENT ────────────────────────────────────
+  async function confirmPayment() {
+    const utr    = document.getElementById('utr').value.trim();
+    const appVal = document.getElementById('appused').value.trim() || 'Google Pay';
+    if (!utr) { toast('⚠️ Please enter your UTR / Transaction ID'); return; }
 
     const now       = new Date();
     const dateStr   = now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const receiptId = 'RCP' + Date.now().toString().slice(-8);
 
-    // Fill receipt card
-    document.getElementById('receipt-date').textContent  = dateStr;
-    document.getElementById('r-name').textContent        = fullName;
-    document.getElementById('r-tid').textContent         = tgUser.id || 'Unknown';
-    document.getElementById('r-plan').textContent        = currentPlan + ' Plan';
-    document.getElementById('r-amount').textContent      = '₹' + currentAmount;
-    document.getElementById('r-utr').textContent         = utr;
-    document.getElementById('r-app').textContent         = appUsed;
-    document.getElementById('r-receipt-id').textContent  = receiptId;
+    // Fill receipt
+    document.getElementById('r-date').textContent   = dateStr;
+    document.getElementById('r-name').textContent   = fullName;
+    document.getElementById('r-tid').textContent    = tgUser.id || 'Unknown';
+    document.getElementById('r-plan').textContent   = plan + ' Plan';
+    document.getElementById('r-amount').textContent = '₹' + amount;
+    document.getElementById('r-utr').textContent    = utr;
+    document.getElementById('r-app').textContent    = appVal;
+    document.getElementById('r-rcpt').textContent   = receiptId;
 
-    // Show success screen first
-    showScreen('screen-success');
-
-    // Send bot message
-    await sendReceiptToBot({ utr, appUsed, dateStr, receiptId });
+    show('s-success');
+    await sendReceipt({ utr, appVal, dateStr, receiptId });
   }
 
-  // ── SEND RECEIPT VIA BOT ─────────────────────────────────
-  async function sendReceiptToBot({ utr, appUsed, dateStr, receiptId }) {
+  // ── SEND RECEIPT VIA BOT API ───────────────────────────
+  async function sendReceipt({ utr, appVal, dateStr, receiptId }) {
     const chatId = tgUser.id;
-    if (!chatId || chatId === 'Unknown') return;
+    if (!chatId) return;
 
     document.getElementById('loading').classList.add('show');
 
-    const msg = `
-✅ *Payment Confirmed!*
+    const text = `✅ *Payment Confirmed!*
 
 📋 *Receipt — ${receiptId}*
 ━━━━━━━━━━━━━━━━━━━
 👤 Name: ${fullName}
 🆔 Telegram ID: \`${chatId}\`
-📦 Plan: ${currentPlan} Plan
-💰 Amount: ₹${currentAmount}
-🏦 App Used: ${appUsed}
+📦 Plan: ${plan} Plan
+💰 Amount: ₹${amount}
+🏦 App: ${appVal}
 🔖 UTR / Txn ID: \`${utr}\`
-🕐 Date: ${dateStr}
+📅 Date: ${dateStr}
 ━━━━━━━━━━━━━━━━━━━
-Thank you for your payment! Your plan is now active. 🎉
-    `.trim();
+Thank you! Your plan is now *active*. 🎉`;
 
     try {
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id:    chatId,
-          text:       msg,
-          parse_mode: 'Markdown'
-        })
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' })
       });
-    } catch(e) {
-      console.error('Bot message failed:', e);
+      const data = await res.json();
+      if (!data.ok) console.warn('Bot error:', data.description);
+    } catch (e) {
+      console.error('Failed to send receipt:', e);
     } finally {
       document.getElementById('loading').classList.remove('show');
     }
   }
 
-  // ── TOAST ────────────────────────────────────────────────
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
+  // ── CLOSE TWA ──────────────────────────────────────────
+  function closeTwa() {
+    if (twa) twa.close();
+    else window.close();
+  }
+
+  // ── TOAST ──────────────────────────────────────────────
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
   }
 </script>
 </body>
