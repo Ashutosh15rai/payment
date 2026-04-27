@@ -502,31 +502,26 @@
 
   // ── OPEN GOOGLE PAY ────────────────────────────────────
   function openGpay() {
-    const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Payment for ' + plan + ' Plan')}`;
+    // Telegram.WebApp.openLink only accepts https:// URLs — upi:// is rejected.
+    // Solution: open redirect.html (on our own https domain) in external browser.
+    // That page immediately does window.location = 'upi://...' which works in
+    // a real browser outside of Telegram's sandboxed WebView.
+    const base = window.location.origin;
+    const params = new URLSearchParams({
+      pa: UPI_ID, pn: UPI_NAME,
+      am: amount,  cu: 'INR',
+      tn: 'Payment for ' + plan + ' Plan'
+    });
+    const redirectUrl = base + '/redirect.html?' + params.toString();
 
-    // Method 1: Telegram's own openLink — opens in external browser
-    // which CAN handle upi:// deep links on Android
     if (window.Telegram?.WebApp?.openLink) {
-      try {
-        window.Telegram.WebApp.openLink(upiLink);
-      } catch(e) {
-        // Method 2: try intent URL (Android only)
-        const intentUrl = `intent://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
-        const a = document.createElement('a');
-        a.href = intentUrl; a.target = '_blank';
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
-      }
+      window.Telegram.WebApp.openLink(redirectUrl);
     } else {
-      // Method 3: fallback for non-Telegram browsers
-      const a = document.createElement('a');
-      a.href = upiLink; a.target = '_blank';
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
+      window.open(redirectUrl, '_blank');
     }
 
-    // After 2.5s, take user to UTR confirmation
-    setTimeout(() => show('s-utr'), 2500);
+    // After user pays and comes back, show UTR confirmation screen
+    setTimeout(() => show('s-utr'), 3000);
   }
 
   // ── CONFIRM PAYMENT ────────────────────────────────────
